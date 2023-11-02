@@ -196,6 +196,12 @@ def abrir_cofres(areas: list[tuple[int, int, int, int, int, int]],
 
     cofres_abiertos = [[False for _ in range(matriz_columnas)] for _ in range(matriz_filas)]
     pasos = []
+    #print(areas)
+    #print("\n")
+    #print(tipoCofre_cofres)
+    #print("\n")
+    #print(grafo)
+    #print("\n")
     
     # Abre los cofres desde el tipo de cofre mas grande al mas pequeño recorriendo el area de cada tipo de cofre
     while areas:
@@ -211,10 +217,9 @@ def abrir_cofres(areas: list[tuple[int, int, int, int, int, int]],
             if nodo_actual in cofres:
                 cofres_abiertos[int(nodo_actual[0])][int(nodo_actual[1])] = True
             for nodo_adyacente in grafo[nodo_actual]:
-                if nodo_adyacente not in visitados and fila_minima <= int(nodo_adyacente[0]) <= fila_maxima and columna_minima <= int(nodo_adyacente[1]) <= columna_maxima:
+                if nodo_adyacente not in visitados and fila_minima <= int(nodo_adyacente[0])+1 <= fila_maxima and columna_minima <= int(nodo_adyacente[1])+1 <= columna_maxima:
                     stack.append(nodo_adyacente)
                     visitados.append(nodo_adyacente)
-                    cofres_abiertos[int(nodo_adyacente[0])][int(nodo_adyacente[1])] = True
         pasos.append("{} {} {} {} {}".format(tipo_cofre, fila_minima, fila_maxima, columna_minima, columna_maxima))
 
     return pasos
@@ -232,6 +237,11 @@ def problema_p2(matriz: list[list[int]], llaves_cantidad: int) -> list[str]:
         - pasos (list[str]): A list of strings representing the steps to
           correctly open the safes in the matrix.
     """
+    #print(matriz[0])
+    #print(matriz[1])
+    #print(matriz[2])
+    #print(matriz[3])
+    #print()
 
     grafo, tipoCofre_cofres = crearGrafo_obtenerTipoCofreCofres(matriz)
     areas = obtener_areas(grafo, matriz, llaves_cantidad)
@@ -265,3 +275,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+#print(problema_p2([[2, 2, 2, 2, 1], [2, 3, 4, 4, 1], [2, 3, 4, 4, 1], [2, 3, 2, 2, 4]], 4))
+#print(problema_p2([[4, 4, 4, 4, 4], [3, 3, 3, 4, 4], [2, 2, 3, 4, 4], [1, 2, 3, 4, 4]], 4))
