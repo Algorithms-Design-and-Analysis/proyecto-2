@@ -47,7 +47,7 @@ def crearGrafo_obtenerTipoCofreCofres(
 def obtener_areas(grafo: dict[str, list[str]],
                   matriz: list[list[int]],
                   llaves_cantidad: int
-                  ) -> list[tuple[int, int, int, int, int, int]]:
+                  ) -> tuple[list[tuple[int, int, int, int, int, int]], dict[int, int]]:
 
     """
 	Calculates the areas that cover the different types of safes in the
@@ -62,9 +62,11 @@ def obtener_areas(grafo: dict[str, list[str]],
 	    - llaves_cantidad (int): The number of different types of safes.
 
 	Returns:
-	    - areas (list[tuple[int, int, int, int, int, int]]): A list of tuples
-          containing the area of each type of safe and its min and max row
-          and column.
+        - tuple[list[tuple[int, int, int, int, int, int]], dict[int, int]]: A
+          tuple containing two elements. The first element is a list of tuples
+          containing the area of each type of safe and its min and max row and
+          column and the second element is a dictionary that maps each type of
+          safe to its area.
 
 	"""
     
@@ -106,7 +108,10 @@ def obtener_areas(grafo: dict[str, list[str]],
 
     return areas, tipoCofre_area
 
-def cerrar_cofres(tipo_cofre_cerrar, cofres_abiertos, tipoCofre_cofres):
+def cerrar_cofres(tipo_cofre_cerrar:int,
+                  cofres_abiertos:list[list[bool]],
+                  tipoCofre_cofres:dict[int, list[str]]
+                  )->list[list[bool]]:
     
     """
     Closes the safes in the matrix.
@@ -119,12 +124,11 @@ def cerrar_cofres(tipo_cofre_cerrar, cofres_abiertos, tipoCofre_cofres):
           each type of safe to its list of safes of that type.
     
     Returns:
-        - pasos (list[str]): A list of strings representing the steps to
-          correctly close the safes in the matrix.
+        - cofres_abiertos (list[list[bool]]): A list of lists that represents
+          the status of each cofre in the matrix.
     """
     
     for cofre in tipoCofre_cofres[tipo_cofre_cerrar]:
-        #print(cofre)
         cofres_abiertos[int(cofre[0])][int(cofre[1])] = False
         
     return cofres_abiertos
@@ -159,42 +163,36 @@ def abrir_cofres(areas: list[tuple[int, int, int, int, int, int]],
 
     cofres_abiertos = [[False for _ in range(matriz_columnas)] for _ in range(matriz_filas)]
     pasos = []
-    #print(areas)
-    #print("\n")
-    #print(tipoCofre_cofres)
-    #print("\n")
-    #print(grafo)
-    #print("\n")
     
-    # Abre los cofres desde el tipo de cofre mas grande al mas pequeño recorriendo el area de cada tipo de cofre
-    #print(areas)
     while areas:
-        #print("---------")
         area, tipo_cofre, fila_minima, columna_minima, fila_maxima, columna_maxima = heapq.heappop(areas)
         cofres = tipoCofre_cofres[tipo_cofre]
         cofre_inicial = cofres[0]
         stack = [cofre_inicial]
         visitados = [cofre_inicial]
         retroceder = False
+        # En general, se tratan de abrir los cofres del mas grande al mas pequeño a excepción de un caso especial
         while stack:
             nodo_actual = stack.pop()
             nodo_actual_tipo = matriz[int(nodo_actual[0])][int(nodo_actual[1])]
-            #print(nodo_actual)
+            # Si el area del tipo de cofre que se enucuentra en el área es mayor al area del tipo de cofre que se está recorriendo en el momento se vuelven a cerrar los cofres de ese tipo de cofre para poder abrir el que se está abriendo ahora primero
             if cofres_abiertos[int(nodo_actual[0])][int(nodo_actual[1])] and -tipoCofre_area[nodo_actual_tipo][0] > -area and tipoCofre_area[nodo_actual_tipo] not in areas:
                 cofres_abiertos = cerrar_cofres(nodo_actual_tipo, cofres_abiertos, tipoCofre_cofres)
                 heapq.heappush(areas, tipoCofre_area[nodo_actual_tipo])
                 retroceder = True
+            # Si se encuentra un cofre en el area que ya esta abierto y es de un tipo de cofre que tiene un area menor o igual a la area del tipo de cofre que se esta recorriendo en el momento
             if not retroceder and cofres_abiertos[int(nodo_actual[0])][int(nodo_actual[1])]:
                 return ["NO SE PUEDE"]
+            # Si se pueden abrir los cofres sin problemas
             if nodo_actual in cofres:
-                #print(nodo_actual)
                 cofres_abiertos[int(nodo_actual[0])][int(nodo_actual[1])] = True
             for nodo_adyacente in grafo[nodo_actual]:
                 if nodo_adyacente not in visitados and fila_minima <= int(nodo_adyacente[0])+1 <= fila_maxima and columna_minima <= int(nodo_adyacente[1])+1 <= columna_maxima:
                     stack.append(nodo_adyacente)
                     visitados.append(nodo_adyacente)
-        #print(cofres_abiertos)
+                    
         paso = "{} {} {} {} {}".format(tipo_cofre, fila_minima, fila_maxima, columna_minima, columna_maxima)
+        # Si el paso de abir un tipo de cofre ya se encontraba pero se volvio a cerrar por el caso especial, se elimna el que ya estaba y se vuelve añadir de último para mantener el orden de la lista de pasos
         if paso in pasos:
             pasos.remove(paso)
         pasos.append(paso)
@@ -214,11 +212,6 @@ def problema_p2(matriz: list[list[int]], llaves_cantidad: int) -> list[str]:
         - pasos (list[str]): A list of strings representing the steps to
           correctly open the safes in the matrix.
     """
-    #print(matriz[0])
-    #print(matriz[1])
-    #print(matriz[2])
-    #print(matriz[3])
-    #print()
 
     grafo, tipoCofre_cofres = crearGrafo_obtenerTipoCofreCofres(matriz)
     areas, tipoCofre_area = obtener_areas(grafo, matriz, llaves_cantidad)
@@ -251,26 +244,5 @@ def main() -> None:
             print(paso)
 
 
-#if __name__ == "__main__":
-#    main()
-
-#M=100
-#N= 100
-#MN=M*N
-#........
-#print((4*MN)-(2*N)-(2*M))
-#
-
-print(problema_p2([
-     [1,1,1,1,2,2,2,2],
-     [1,1,1,1,2,2,2,2],
-     [1,1,3,3,3,3,3,2],
-     [1,1,3,3,3,3,3,2],
-     [4,4,3,3,3,3,3,5],
-     [4,4,3,3,3,3,3,5]], 5))
-
-
-
-#print(problema_p2([[2, 2, 2, 2, 1], [2, 3, 5, 5, 1], [2, 3, 5, 5, 1], [2, 3, 4, 4, 5]], 5))
-#print(problema_p2([[4, 4, 4, 4, 4], [3, 3, 3, 4, 4], [2, 2, 3, 4, 4], [1, 2, 3, 4, 4]], 4))
-#print(problema_p2([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]], 25))
+if __name__ == "__main__":
+    main()
