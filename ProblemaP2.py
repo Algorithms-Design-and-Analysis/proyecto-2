@@ -1,69 +1,5 @@
 # Sergio Franco Pineda (202116614), Lina Maria Ojeda (202112324)
 
-"""
-
-ANOTACIONES:
-
-- Los componentes del grafo están compuestos por arcos entre 
-  cofres que se abren con la misma llave.
-
-- Se debe tener en cuenta el rango que cubre cada MST en la
-  matriz.
-
-- El rango que cubre cada MST en la matriz se calcula como
-  (fila del nodo con mayor posicion de fila)*(la columna del 
-  nodo con mayor posicion de columna).
-
-- Los cofres se deben ir abriendo desde el MST que más area
-  ocupa hasta el MST que en la matriz ocupa hasta el que 
-  menos ocupa.
-
-ALGORITMO:
-  
-1. Armar el grafo, en este grafo cada vertice se conecta con
-   sus adyacentes.
-
-2. Encontrar el area ocupada en la matriz por cada tipo de 
-   cofre.
-
-3. Poppear el tipo de cofre que mas area ocupa de una lista areas por cofre.
-
-4. Desde cualquier cofre del tipo de cofre seleccionado en el paso anterior, 
-   realizar DFS para identificar todos los nodos que son alcanzables desde 
-   ahí y que además están dentro del area cubierta por el  tipo de cofre.
-   Ir abriendo los cofres que se encuentren del tipo de cofre seleccionado,
-   pero si se encuentra un cofre que ya está abierto en esa área, no se
-   puede descifrar el mensaje.
-
-5. Si no se encontró ningún cofre ya abierto, añadir el paso a una lista de
-   pasos.
-
-6 Repetir los pasos 3, 4 y 5 hasta haber poppeado todos los tipos de cofres.
-
-INPUT:  
-
-3
-4 5 5
-2 2 2 2 1
-2 3 5 5 1
-2 3 5 5 1
-2 3 4 4 5
-4 5 4
-2 2 2 2 1
-2 3 4 4 1
-2 3 4 4 1
-2 3 1 3 4
-2 2 2
-1 1
-1 2
-
-OUTPUT:
-
-
-
-
-"""
-
 import heapq
 
 def crearGrafo_obtenerTipoCofreCofres(
@@ -160,19 +96,46 @@ def obtener_areas(grafo: dict[str, list[str]],
 
     # Calcula el area de cada tipo de cofre
     areas = []
+    tipoCofre_area = {}
     for i in range(llaves_cantidad):
         fila_maxima = filas_maximas[i]-filas_minimas[i]+1 if filas_maximas[i]!=filas_minimas[i] else 1
         columna_maxima = columnas_maximas[i]-columnas_minimas[i]+1 if columnas_maximas[i]!=columnas_minimas[i] else 1
         areas.append((-fila_maxima*columna_maxima, i+1, filas_minimas[i], columnas_minimas[i], filas_maximas[i], columnas_maximas[i]))
+        tipoCofre_area[i+1] = (-fila_maxima*columna_maxima, i+1, filas_minimas[i], columnas_minimas[i], filas_maximas[i], columnas_maximas[i])
     areas.sort(reverse=False)
 
-    return areas
+    return areas, tipoCofre_area
+
+def cerrar_cofres(tipo_cofre_cerrar, cofres_abiertos, tipoCofre_cofres):
+    
+    """
+    Closes the safes in the matrix.
+    
+    Parameters:
+        - tipo_cofre_cerrar (int): The type of cofre to be closed.
+        - cofres_abiertos (list[list[bool]]): A list of lists that represents
+          the status of each cofre in the matrix.
+        - tipoCofre_cofres (dict[int, list[str]]): A dictionary that maps
+          each type of safe to its list of safes of that type.
+    
+    Returns:
+        - pasos (list[str]): A list of strings representing the steps to
+          correctly close the safes in the matrix.
+    """
+    
+    for cofre in tipoCofre_cofres[tipo_cofre_cerrar]:
+        #print(cofre)
+        cofres_abiertos[int(cofre[0])][int(cofre[1])] = False
+        
+    return cofres_abiertos
 
 def abrir_cofres(areas: list[tuple[int, int, int, int, int, int]],
                  tipoCofre_cofres: dict[int, list[str]],
+                 matriz: list[list[int]],
                  matriz_filas: int,
                  matriz_columnas: int,
-                 grafo: dict[str, list[str]]) -> list[str]:
+                 grafo: dict[str, list[str]],
+                 tipoCofre_area: dict[int, int]) -> list[str]:
     
     """
     Opens the safes in the matrix.
@@ -204,23 +167,37 @@ def abrir_cofres(areas: list[tuple[int, int, int, int, int, int]],
     #print("\n")
     
     # Abre los cofres desde el tipo de cofre mas grande al mas pequeño recorriendo el area de cada tipo de cofre
+    #print(areas)
     while areas:
-        _, tipo_cofre, fila_minima, columna_minima, fila_maxima, columna_maxima = heapq.heappop(areas)
+        #print("---------")
+        area, tipo_cofre, fila_minima, columna_minima, fila_maxima, columna_maxima = heapq.heappop(areas)
         cofres = tipoCofre_cofres[tipo_cofre]
         cofre_inicial = cofres[0]
         stack = [cofre_inicial]
         visitados = [cofre_inicial]
+        retroceder = False
         while stack:
             nodo_actual = stack.pop()
-            if cofres_abiertos[int(nodo_actual[0])][int(nodo_actual[1])]:
+            nodo_actual_tipo = matriz[int(nodo_actual[0])][int(nodo_actual[1])]
+            #print(nodo_actual)
+            if cofres_abiertos[int(nodo_actual[0])][int(nodo_actual[1])] and -tipoCofre_area[nodo_actual_tipo][0] > -area and tipoCofre_area[nodo_actual_tipo] not in areas:
+                cofres_abiertos = cerrar_cofres(nodo_actual_tipo, cofres_abiertos, tipoCofre_cofres)
+                heapq.heappush(areas, tipoCofre_area[nodo_actual_tipo])
+                retroceder = True
+            if not retroceder and cofres_abiertos[int(nodo_actual[0])][int(nodo_actual[1])]:
                 return ["NO SE PUEDE"]
             if nodo_actual in cofres:
+                #print(nodo_actual)
                 cofres_abiertos[int(nodo_actual[0])][int(nodo_actual[1])] = True
             for nodo_adyacente in grafo[nodo_actual]:
                 if nodo_adyacente not in visitados and fila_minima <= int(nodo_adyacente[0])+1 <= fila_maxima and columna_minima <= int(nodo_adyacente[1])+1 <= columna_maxima:
                     stack.append(nodo_adyacente)
                     visitados.append(nodo_adyacente)
-        pasos.append("{} {} {} {} {}".format(tipo_cofre, fila_minima, fila_maxima, columna_minima, columna_maxima))
+        #print(cofres_abiertos)
+        paso = "{} {} {} {} {}".format(tipo_cofre, fila_minima, fila_maxima, columna_minima, columna_maxima)
+        if paso in pasos:
+            pasos.remove(paso)
+        pasos.append(paso)
 
     return pasos
 
@@ -244,8 +221,8 @@ def problema_p2(matriz: list[list[int]], llaves_cantidad: int) -> list[str]:
     #print()
 
     grafo, tipoCofre_cofres = crearGrafo_obtenerTipoCofreCofres(matriz)
-    areas = obtener_areas(grafo, matriz, llaves_cantidad)
-    pasos = abrir_cofres(areas, tipoCofre_cofres, len(matriz), len(matriz[0]), grafo)
+    areas, tipoCofre_area = obtener_areas(grafo, matriz, llaves_cantidad)
+    pasos = abrir_cofres(areas, tipoCofre_cofres, matriz, len(matriz), len(matriz[0]), grafo, tipoCofre_area)
 
     return pasos
 
@@ -273,8 +250,27 @@ def main() -> None:
         for paso in pasos:
             print(paso)
 
-if __name__ == "__main__":
-    main()
 
-#print(problema_p2([[2, 2, 2, 2, 1], [2, 3, 4, 4, 1], [2, 3, 4, 4, 1], [2, 3, 2, 2, 4]], 4))
+#if __name__ == "__main__":
+#    main()
+
+#M=100
+#N= 100
+#MN=M*N
+#........
+#print((4*MN)-(2*N)-(2*M))
+#
+
+print(problema_p2([
+     [1,1,1,1,2,2,2,2],
+     [1,1,1,1,2,2,2,2],
+     [1,1,3,3,3,3,3,2],
+     [1,1,3,3,3,3,3,2],
+     [4,4,3,3,3,3,3,5],
+     [4,4,3,3,3,3,3,5]], 5))
+
+
+
+#print(problema_p2([[2, 2, 2, 2, 1], [2, 3, 5, 5, 1], [2, 3, 5, 5, 1], [2, 3, 4, 4, 5]], 5))
 #print(problema_p2([[4, 4, 4, 4, 4], [3, 3, 3, 4, 4], [2, 2, 3, 4, 4], [1, 2, 3, 4, 4]], 4))
+#print(problema_p2([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]], 25))
