@@ -28,14 +28,14 @@ def crearGrafo_obtenerTipoCofreCofres(
         for columna in range(len(matriz[fila])):
             nodo_adyacetes = []
             if 0 <= fila-1 < len(matriz) and 0 <= columna < len(matriz[fila]):
-                nodo_adyacetes.append(str(fila-1)+str(columna)) # Los nodos están identificados por sus coordenadas
+                nodo_adyacetes.append((str(fila-1),str(columna))) # Los nodos están identificados por sus coordenadas
             if 0 <= fila+1 < len(matriz) and 0 <= columna < len(matriz[fila]):
-                nodo_adyacetes.append(str(fila+1)+str(columna))
+                nodo_adyacetes.append((str(fila+1),str(columna)))
             if 0 <= fila < len(matriz) and 0 <= columna-1 < len(matriz[fila]):
-                nodo_adyacetes.append(str(fila)+str(columna-1))
+                nodo_adyacetes.append((str(fila),str(columna-1)))
             if 0 <= fila < len(matriz) and 0 <= columna+1 < len(matriz[fila]):
-                nodo_adyacetes.append(str(fila)+str(columna+1))
-            nodo_identificador = str(fila)+str(columna)
+                nodo_adyacetes.append((str(fila),str(columna+1)))
+            nodo_identificador = (str(fila),str(columna))
             if matriz[fila][columna] not in tipoCofre_cofres:
                 tipoCofre_cofres[matriz[fila][columna]] = [nodo_identificador]
             else:
@@ -82,8 +82,8 @@ def obtener_areas(grafo: dict[str, list[str]],
         columnas_maximas.append(0)
 
     # Calcula los indices limites de cada tipo de cofre
-    stack = ["00"]
-    nodos_visitados = ["00"]
+    stack = [("0","0")]
+    nodos_visitados = [("0","0")]
     while stack:
         nodo_actual = stack.pop()
         nodo_actual_tipo_cofre = matriz[int(nodo_actual[0])][int(nodo_actual[1])]
